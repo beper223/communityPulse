@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 from src.core.config import settings
 
@@ -22,7 +23,9 @@ def create_app() -> Flask:
     app = Flask(settings.APP_NAME)
 
     app.config.update(settings.get_flask_config())
+    alemb = Migrate()
 
+    alemb.init_app(app, db)
     init_database(app=app)
     register_routes(app=app)
 
