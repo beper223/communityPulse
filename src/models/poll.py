@@ -33,6 +33,12 @@ class Poll(BaseModel):
         default=True,
     )
 
+    category_id: Mapped[int] = mapped_column(
+        db.Integer,
+        db.ForeignKey("categories.id"),
+        nullable=False
+    )
+
     # Relations
 
     poll_options: Mapped[list['PollOption']] = relationship(
@@ -54,6 +60,10 @@ class Poll(BaseModel):
         cascade='all, delete-orphan',
     )
 
+    category: Mapped["Category"] = relationship(
+        "Category",
+        back_populates="polls"
+    )
 
 class PollOption(BaseModel):
     __tablename__ = "poll_options"

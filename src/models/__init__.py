@@ -3,6 +3,7 @@ from src.models.user import User
 from src.models.vote import Vote
 from src.models.poll import Poll, PollOption
 from src.models.statistics import PollStatistics, OptionStatistics
+from src.models.category import Category
 
 
 __all__ = (
@@ -13,4 +14,5 @@ __all__ = (
     'PollOption',
     'PollStatistics',
     'OptionStatistics',
+    'Category',
 )
