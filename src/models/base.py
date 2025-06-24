@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.core.app_runner import db
+from src.core.db import db
 
 
 class TimestampMixin:
