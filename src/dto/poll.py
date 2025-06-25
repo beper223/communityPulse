@@ -79,7 +79,7 @@ class PollResponseDTO(BaseDTO, IdDTOMixin, TimestampDTOMixin):
     )
 
 
-class PollListResponseDTO(BaseDTO, IdDTOMixin):
+class ShortInfoPollResponseDTO(BaseDTO, IdDTOMixin):
     title: str
     start_date: datetime
     end_date: datetime
