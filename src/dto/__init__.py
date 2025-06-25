@@ -9,7 +9,7 @@ from src.dto.poll import (
     PollOptionRequestDTO,
     PollRequestDTO,
     PollResponseDTO,
-    PollListResponseDTO,
+    ShortInfoPollResponseDTO,
     PollUpdateRequestDTO,
     PollOptionResponseDTO
 )
@@ -24,7 +24,7 @@ __all__ = (
     "PollOptionRequestDTO",
     "PollRequestDTO",
     "PollResponseDTO",
-    "PollListResponseDTO",
+    "ShortInfoPollResponseDTO",
     "PollUpdateRequestDTO",
     "PollOptionResponseDTO"
 )

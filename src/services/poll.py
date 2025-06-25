@@ -45,7 +45,7 @@ class PollService:
             return None, err
 
         if not poll:
-            return None, f"Poll obj with ID {poll_id} not found"
+            return None, f"Not found"
 
         response = PollResponseDTO.model_validate(poll)
 

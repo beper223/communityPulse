@@ -13,7 +13,7 @@ class BaseDTO(BaseModel):
     )
 
 
-class TimestampDTOMixin(BaseDTO):
+class TimestampDTOMixin(BaseModel):
     created_at: datetime = Field(
         description="Date and time of object creation",
         examples=["2025-06-25T00:00:00Z"]
@@ -24,13 +24,13 @@ class TimestampDTOMixin(BaseDTO):
     )
 
 
-class IdDTOMixin(BaseDTO):
+class IdDTOMixin(BaseModel):
     id: int = Field(
         gt=0
     )
 
 
-class PaginationRequestDTO(BaseDTO):
+class PaginationRequestDTO(BaseModel):
     page: int = Field(
         default=1,
         ge=1
@@ -41,7 +41,7 @@ class PaginationRequestDTO(BaseDTO):
         le=40
     )
 
-class PaginationResponseDTO(BaseDTO):
+class PaginationResponseDTO(BaseModel):
     page: int
     per_page: int
     total: int

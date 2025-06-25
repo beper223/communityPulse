@@ -1,84 +1,103 @@
 from flask import jsonify, request
 from http import HTTPStatus
 
-data = [
-    {
-        "id": 1,
-        "title": "QUESTION 1",
-        "description": "POLL 1 DESCRIPTION"
-    },
-    {
-        "id": 2,
-        "title": "QUESTION 2",
-        "description": "POLL 2 DESCRIPTION"
-    },
-    {
-        "id": 3,
-        "title": "QUESTION 3",
-        "description": "POLL 3 DESCRIPTION"
-    },
-    {
-        "id": 4,
-        "title": "QUESTION 4",
-        "description": "POLL 4 DESCRIPTION"
-    },
-]
+from src.services.poll import PollService
+
 
 class PollController:
+    poll_service = PollService()
     # CRUD for Poll
 
-    @staticmethod
-    def get_polls():
-        return jsonify({
-            "status": 'success',
-            "data": data
-        }), HTTPStatus.OK
-
-    @staticmethod
-    def get_poll_by_id(poll_id: int):
-        obj = filter(lambda x: x.get('id') == poll_id, data)
-
-        if obj:
-            return jsonify({
-                "status": 'success',
-                "data": next(obj)
-            }), HTTPStatus.OK
-
-        return jsonify({
-            "status": 'success',
-            "data": {}
-        }), HTTPStatus.NO_CONTENT  # 204
-
-    @staticmethod
-    def create_poll():
+    def create_poll(self):
         data = request.get_json()
 
+        if not data:
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "No data provided"
+                }
+            ), HTTPStatus.BAD_REQUEST
+
+        poll, err = self.poll_service.create_poll(data=data)
+
+        if err:
+            return jsonify({
+                "status": 'error',
+                "message": err
+            }), HTTPStatus.BAD_REQUEST
+
         return jsonify({
             "status": 'success',
-            "data": data
+            "data": poll
         }), HTTPStatus.CREATED
 
-    @staticmethod
-    def update_poll(poll_id: int):
-        data = request.get_json()
+    def get_poll_by_id(self, poll_id: int):
+        poll, err = self.poll_service.get_poll(poll_id=poll_id)
 
-        obj = next(filter(lambda x: x.get('id') == poll_id, data))
-
-        obj.update(data)
-
-        return jsonify({
-            "status": 'success',
-            "data": obj
-        }), HTTPStatus.OK
-
-    @staticmethod
-    def delete_poll(poll_id: int):
-        data = request.get_json()
-
-        obj = next(filter(lambda x: x.get('id') == poll_id, data))
-
-        del obj
+        if err:
+            return jsonify({
+                "status": 'error',
+                "message": err
+            }), HTTPStatus.NOT_FOUND if err == "Not found" else HTTPStatus.BAD_REQUEST
 
         return jsonify({
             "status": 'success',
+            "data": poll
+        }), HTTPStatus.OK  # 200
+
+    def get_polls(self):
+        polls, err = self.poll_service.get_all_polls()
+
+        if err:
+            return jsonify({
+                "status": 'error',
+                "message": err
+            }), HTTPStatus.INTERNAL_SERVER_ERROR  # 500
+
+        return jsonify({
+            "status": 'success',
+            "data": polls
         }), HTTPStatus.OK
+
+    def update_poll(self, poll_id: int):
+        data = request.get_json()
+
+        if not data:
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "No data provided"
+                }
+            ), HTTPStatus.BAD_REQUEST
+
+        poll, err = self.poll_service.update_poll(
+            poll_id=poll_id,
+            data=data
+        )
+
+        if err:
+            return (jsonify({
+                "status": 'error',
+                "message": err
+            }), HTTPStatus.NOT_FOUND if err == f"{self.poll_service.poll_repo.model_class.__name__} not found"
+            else HTTPStatus.BAD_REQUEST)
+
+        return jsonify({
+            "status": 'success',
+            "data": poll
+        }), HTTPStatus.OK
+
+    def delete_poll(self, poll_id: int):
+        success, err = self.poll_service.delete_poll(poll_id=poll_id)
+
+        if err:
+            return (jsonify({
+                "status": 'error',
+                "message": err
+            }), HTTPStatus.NOT_FOUND if err == f"{self.poll_service.poll_repo.model_class.__name__} not found"
+            else HTTPStatus.BAD_REQUEST)
+
+        return jsonify({
+            "status": 'success',
+        }), HTTPStatus.NO_CONTENT

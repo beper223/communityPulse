@@ -62,7 +62,7 @@ class PollUpdateRequestDTO(BaseDTO):
     end_date: Optional[datetime] = None
 
 
-class PollOptionResponseDTO(BaseDTO):
+class PollOptionResponseDTO(BaseDTO, IdDTOMixin, TimestampDTOMixin):
     poll_id: int
     text: str
 
