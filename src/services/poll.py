@@ -1,97 +1,128 @@
-from typing import Any
+from typing import List, Dict, Any, Union
 
-from src.dto import PollRequestDTO, PollResponseDTO
-from src.dto.poll import ShortInfoPollResponseDTO, PollUpdateRequestDTO
 from src.repositories.poll import PollRepository
+
+from src.dto import (
+    PollRequestDTO,
+    PollUpdateRequestDTO,
+    PollResponseDTO,
+    ShortInfoPollResponseDTO
+)
+from src.core.exceptions import (
+    CustomBaseException,
+    EntityNotFoundException,
+    DatabaseException,
+    PollNotFoundException,
+    PollValidationException,
+    PollCreationException,
+    PollUpdateException,
+    PollDeletionException,
+    PollDatabaseException
+)
 
 
 class PollService:
-    poll_repo = PollRepository()
 
-    def create_poll(self, data: dict[str, Any]):
+    def __init__(self):
+        self.poll_repository = PollRepository()
+
+    def create_poll(self, data: Dict[str, Any]) -> Union[Dict, CustomBaseException]:
         try:
-            validated_data = PollRequestDTO(**data)
+            poll_dto = PollRequestDTO(**data)
 
             poll_data = {
-                "title": validated_data.title,
-                "description": validated_data.description,
-                "start_date": validated_data.start_date,
-                "end_date": validated_data.end_date,
-                "is_active": validated_data.is_active,
-                "is_anonymous": validated_data.is_anonymous,
+                'title': poll_dto.title,
+                'description': poll_dto.description,
+                'start_date': poll_dto.start_date,
+                'end_date': poll_dto.end_date,
+                'is_anonymous': poll_dto.is_anonymous,
+                'is_active': poll_dto.is_active
             }
 
-            options = [opt.text for opt in validated_data.options]
+            options_texts = [option.text for option in poll_dto.options]
 
-            poll, err = self.poll_repo.create_with_options(
-                poll_data=poll_data,
-                poll_options=options
-            )
+            result = self.poll_repository.create_with_options(poll_data, options_texts)
 
-            if err:
-                return None, err
+            if isinstance(result, PollCreationException):
+                return result
 
-            response = PollResponseDTO.model_validate(poll)
+            poll_response = PollResponseDTO.model_validate(result)
 
-            return response.model_dump_json(indent=4), None
+            return poll_response.model_dump(mode='json')
 
         except Exception as e:
-            return None, str(e)
+            return PollValidationException(f"Ошибка валидации: {str(e)}")
 
-    def get_poll(self, poll_id: int):
-        poll, err = self.poll_repo.get_by_id(poll_id)
+    def get_poll(self, poll_id: int) -> Union[Dict, CustomBaseException]:
+        result = self.poll_repository.get_by_id(poll_id)
 
-        if err:
-            return None, err
+        # Обрабатываем все возможные типы исключений из репозитория
+        if isinstance(result, EntityNotFoundException):
+            return PollNotFoundException(result.message)
 
-        if not poll:
-            return None, f"Not found"
+        if isinstance(result, DatabaseException):
+            return PollDatabaseException(result.message)
 
-        response = PollResponseDTO.model_validate(poll)
+        if isinstance(result, (PollNotFoundException, PollDatabaseException)):
+            return result
 
-        return response.model_dump_json(indent=4), None
+        poll_response = PollResponseDTO.model_validate(result)
 
-    def get_all_polls(self):
-        polls, err = self.poll_repo.get_all()
+        return poll_response.model_dump(mode='json')
 
-        if err:
-            return None, err
+    def get_all_polls(self) -> Union[List[Dict], PollDatabaseException]:
+        result = self.poll_repository.get_all()
 
+        if isinstance(result, DatabaseException):
+            return PollDatabaseException(result.message)
 
-        response = [
-            ShortInfoPollResponseDTO.model_validate(
-                poll).model_dump_json(indent=4)
-            for poll in polls
-        ]
+        if isinstance(result, PollDatabaseException):
+            return result
 
-        return response, None
+        polls_list = [ShortInfoPollResponseDTO.model_validate(poll).model_dump(mode='json')
+                      for poll in result]
 
-    def update_poll(self, poll_id: int, data: dict[str, Any]):
+        return polls_list
+
+    def update_poll(self, poll_id: int, data: Dict[str, Any]) -> Union[Dict, CustomBaseException]:
         try:
-            validated_data = PollUpdateRequestDTO(**data)
+            poll_dto = PollUpdateRequestDTO(**data)
 
-            updated_data = validated_data.model_dump(
-                exclude_unset=True,
-                exclude_none=True
-            )
+            update_data = poll_dto.model_dump(exclude_unset=True, exclude_none=True)
 
-            if not updated_data:
-                return None, "No data to update"
+            if not update_data:
+                return PollValidationException("Нет данных для обновления")
 
-            poll, err = self.poll_repo.update(
-                obj_id=poll_id,
-                data=updated_data
-            )
+            result = self.poll_repository.update(poll_id, update_data)
 
-            if err:
-                return None, err
+            # Обрабатываем все возможные типы исключений из репозитория
+            if isinstance(result, EntityNotFoundException):
+                return PollNotFoundException(result.message)
 
-            response = PollResponseDTO.model_validate(poll)
+            if isinstance(result, DatabaseException):
+                return PollDatabaseException(result.message)
 
-            return response.model_dump_json(indent=4), None
+            if isinstance(result, (PollNotFoundException, PollUpdateException)):
+                return result
+
+            poll_response = PollResponseDTO.model_validate(result)
+
+            return poll_response.model_dump(mode='json')
 
         except Exception as e:
-            return None, str(e)
+            return PollValidationException(f"Ошибка валидации: {str(e)}")
 
-    def delete_poll(self, poll_id: int):
-        return self.poll_repo.delete(poll_id)
+    def delete_poll(self, poll_id: int) -> Union[bool, CustomBaseException]:
+        result = self.poll_repository.delete(poll_id)
+
+        # Обрабатываем все возможные типы исключений из репозитория
+        if isinstance(result, EntityNotFoundException):
+            return PollNotFoundException(result.message)
+
+        if isinstance(result, DatabaseException):
+            return PollDeletionException(result.message)
+
+        if isinstance(result, (PollNotFoundException, PollDeletionException)):
+            return result
+
+        return result

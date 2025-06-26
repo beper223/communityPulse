@@ -2,102 +2,138 @@ from flask import jsonify, request
 from http import HTTPStatus
 
 from src.services.poll import PollService
+from src.core.exceptions import (
+    PollNotFoundException,
+    PollValidationException,
+    PollCreationException,
+    PollUpdateException,
+    PollDeletionException,
+    PollDatabaseException,
+    CustomBaseException
+)
 
 
 class PollController:
-    poll_service = PollService()
-    # CRUD for Poll
+
+    def __init__(self):
+        self.poll_service = PollService()
+
+    def _handle_poll_exception(self, error: CustomBaseException):
+        if isinstance(error, PollNotFoundException):
+            return jsonify({
+                'status': 'error',
+                'message': error.message,
+                'code': error.code
+            }), HTTPStatus.NOT_FOUND
+
+        elif isinstance(error, PollValidationException):
+            return jsonify({
+                'status': 'error',
+                'message': error.message,
+                'code': error.code
+            }), HTTPStatus.BAD_REQUEST
+
+        elif isinstance(error, PollCreationException):
+            return jsonify({
+                'status': 'error',
+                'message': error.message,
+                'code': error.code
+            }), HTTPStatus.BAD_REQUEST
+
+        elif isinstance(error, PollUpdateException):
+            return jsonify({
+                'status': 'error',
+                'message': error.message,
+                'code': error.code
+            }), HTTPStatus.BAD_REQUEST
+
+        elif isinstance(error, PollDeletionException):
+            return jsonify({
+                'status': 'error',
+                'message': error.message,
+                'code': error.code
+            }), HTTPStatus.BAD_REQUEST
+
+        elif isinstance(error, PollDatabaseException):
+            return jsonify({
+                'status': 'error',
+                'message': error.message,
+                'code': error.code
+            }), HTTPStatus.INTERNAL_SERVER_ERROR
+
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': error.message,
+                'code': error.code
+            }), HTTPStatus.INTERNAL_SERVER_ERROR
 
     def create_poll(self):
         data = request.get_json()
 
         if not data:
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "No data provided"
-                }
-            ), HTTPStatus.BAD_REQUEST
+            error = PollValidationException('No data provided')
+            return self._handle_poll_exception(error)
 
-        poll, err = self.poll_service.create_poll(data=data)
+        result = self.poll_service.create_poll(data)
 
-        if err:
-            return jsonify({
-                "status": 'error',
-                "message": err
-            }), HTTPStatus.BAD_REQUEST
+        if isinstance(result, CustomBaseException):
+            return self._handle_poll_exception(result)
 
         return jsonify({
-            "status": 'success',
-            "data": poll
+            'status': 'success',
+            'message': 'Poll created successfully',
+            'data': result
         }), HTTPStatus.CREATED
 
-    def get_poll_by_id(self, poll_id: int):
-        poll, err = self.poll_service.get_poll(poll_id=poll_id)
-
-        if err:
-            return jsonify({
-                "status": 'error',
-                "message": err
-            }), HTTPStatus.NOT_FOUND if err == "Not found" else HTTPStatus.BAD_REQUEST
-
-        return jsonify({
-            "status": 'success',
-            "data": poll
-        }), HTTPStatus.OK  # 200
-
     def get_polls(self):
-        polls, err = self.poll_service.get_all_polls()
+        result = self.poll_service.get_all_polls()
 
-        if err:
-            return jsonify({
-                "status": 'error',
-                "message": err
-            }), HTTPStatus.INTERNAL_SERVER_ERROR  # 500
+        if isinstance(result, CustomBaseException):
+            return self._handle_poll_exception(result)
 
         return jsonify({
-            "status": 'success',
-            "data": polls
+            'status': 'success',
+            'data': result,
+            'count': len(result)
+        }), HTTPStatus.OK
+
+    def get_poll(self, poll_id: int):
+        result = self.poll_service.get_poll(poll_id)
+
+        if isinstance(result, CustomBaseException):
+            return self._handle_poll_exception(result)
+
+        return jsonify({
+            'status': 'success',
+            'data': result
         }), HTTPStatus.OK
 
     def update_poll(self, poll_id: int):
         data = request.get_json()
 
         if not data:
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "No data provided"
-                }
-            ), HTTPStatus.BAD_REQUEST
+            error = PollValidationException('No data provided')
+            return self._handle_poll_exception(error)
 
-        poll, err = self.poll_service.update_poll(
-            poll_id=poll_id,
-            data=data
-        )
+        result = self.poll_service.update_poll(poll_id, data)
 
-        if err:
-            return (jsonify({
-                "status": 'error',
-                "message": err
-            }), HTTPStatus.NOT_FOUND if err == f"{self.poll_service.poll_repo.model_class.__name__} not found"
-            else HTTPStatus.BAD_REQUEST)
+        if isinstance(result, CustomBaseException):
+            return self._handle_poll_exception(result)
 
         return jsonify({
-            "status": 'success',
-            "data": poll
+            'status': 'success',
+            'message': 'Poll updated successfully',
+            'data': result
         }), HTTPStatus.OK
 
     def delete_poll(self, poll_id: int):
-        success, err = self.poll_service.delete_poll(poll_id=poll_id)
+        result = self.poll_service.delete_poll(poll_id)
 
-        if err:
-            return (jsonify({
-                "status": 'error',
-                "message": err
-            }), HTTPStatus.NOT_FOUND if err == f"{self.poll_service.poll_repo.model_class.__name__} not found"
-            else HTTPStatus.BAD_REQUEST)
+        if isinstance(result, CustomBaseException):
+            return self._handle_poll_exception(result)
 
         return jsonify({
-            "status": 'success',
-        }), HTTPStatus.NO_CONTENT
+            'status': 'success',
+            'message': 'Poll deleted successfully'
+        }), HTTPStatus.OK

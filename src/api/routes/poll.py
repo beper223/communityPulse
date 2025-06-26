@@ -26,7 +26,7 @@ polls_blueprint.add_url_rule(
 
 polls_blueprint.add_url_rule(
     '/<int:poll_id>',
-    view_func=poll_controller.get_poll_by_id,
+    view_func=poll_controller.get_poll,
     methods=['GET']
 )
 
